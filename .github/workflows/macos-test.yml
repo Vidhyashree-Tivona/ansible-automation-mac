@@ -1,0 +1,32 @@
+name: Test macOS Ansible Setup
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show macOS version (debug)
+        run: sw_vers
+
+      - name: Install Homebrew packages
+        run: |
+          brew update
+          brew install ansible nginx mkcert
+
+      - name: Verify tools
+        run: |
+          ansible --version
+          nginx -v
+          mkcert -version
+
+      - name: Run Ansible playbook
+        run: |
+          ansible-playbook -i inventory/hosts site.yml \
+            -e "magazine=test.magsquare.com"
