@@ -51,6 +51,7 @@
   homebrew:
     name: mkcert
     state: present
+  become: false
   when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Install mkcert dependencies (Linux)
