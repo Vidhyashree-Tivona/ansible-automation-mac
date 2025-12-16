@@ -73,7 +73,7 @@
 # Validate nginx config
 # --------------------------
 - name: Validate nginx config (macOS)
-  command: nginx -t
+  command: "{{ brew_prefix.stdout }}/bin/nginx -t"
   when: ansible_facts['os_family'] == 'Darwin'
 
 # --------------------------
@@ -87,13 +87,13 @@
   when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Start nginx if not running (macOS)
-  command: nginx
+  command: "{{ brew_prefix.stdout }}/bin/nginx"
   when:
     - ansible_facts['os_family'] == 'Darwin'
     - nginx_running.rc != 0
 
 - name: Reload nginx if running (macOS)
-  command: nginx -s reload
+  command: "{{ brew_prefix.stdout }}/bin/nginx -s reload"
   when:
     - ansible_facts['os_family'] == 'Darwin'
     - nginx_running.rc == 0

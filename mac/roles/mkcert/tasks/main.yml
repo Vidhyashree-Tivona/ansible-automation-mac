@@ -1,88 +1,3 @@
-# - name: Assert magazine provided
-#   assert:
-#     that:
-#       - magazine | length > 0
-#     fail_msg: "Pass magazine=yourdomain.magsquare.com"
-
-# # --------------------------
-# # Homebrew (macOS)
-# # --------------------------
-# - name: Ensure Homebrew is available (macOS)
-#   command: brew --version
-#   register: brew_check
-#   changed_when: false
-#   failed_when: brew_check.rc != 0
-#   when: ansible_facts['os_family'] == 'Darwin'
-
-# - name: Get brew prefix (macOS)
-#   command: brew --prefix
-#   register: brew_prefix
-#   changed_when: false
-#   when: ansible_facts['os_family'] == 'Darwin'
-
-# - name: Set macOS mkcert paths
-#   set_fact:
-#     cert_dir: "{{ brew_prefix.stdout }}/etc/ssl/ansible-mkcert"
-#     mkcert_binary: "{{ brew_prefix.stdout }}/bin/mkcert"
-#   when: ansible_facts['os_family'] == 'Darwin'
-
-# # --------------------------
-# # Linux paths
-# # --------------------------
-# - name: Set Linux mkcert paths
-#   set_fact:
-#     cert_dir: /etc/ansible-local-mkcert
-#     mkcert_binary: /usr/local/bin/mkcert
-#   when: ansible_facts['os_family'] == 'Linux'
-
-# # --------------------------
-# # Create cert directory
-# # --------------------------
-# - name: Create certificate directory
-#   file:
-#     path: "{{ cert_dir }}"
-#     state: directory
-#     mode: "0755"
-
-# # --------------------------
-# # Install mkcert
-# # --------------------------
-# - name: Install mkcert (macOS)
-#   homebrew:
-#     name: mkcert
-#     state: present
-#   become: false
-#   when: ansible_facts['os_family'] == 'Darwin'
-
-# - name: Install mkcert dependencies (Linux)
-#   apt:
-#     name: libnss3-tools
-#     state: present
-#     update_cache: yes
-#   when: ansible_facts['os_family'] == 'Linux'
-
-# # --------------------------
-# # Install local CA
-# # --------------------------
-# - name: Install mkcert CA
-#   command: "{{ mkcert_binary }} -install"
-
-# # --------------------------
-# # Build SAN list
-# # --------------------------
-# - name: Build SAN list
-#   set_fact:
-#     mkcert_sans: "{{ base_domains + [magazine, 'api.' ~ magazine] }}"
-
-# # --------------------------
-# # Generate certificate
-# # --------------------------
-# - name: Generate certificate
-#   command: >
-#     {{ mkcert_binary }}
-#     -cert-file {{ cert_dir }}/cert.pem
-#     -key-file {{ cert_dir }}/key.pem
-#     {{ mkcert_sans | join(' ') }}
 # --------------------------
 # Validate input
 # --------------------------
@@ -93,16 +8,43 @@
     fail_msg: "Pass magazine=yourdomain.magsquare.com"
 
 # --------------------------
-# macOS: Homebrew + mkcert
+# macOS: Ensure Homebrew
 # --------------------------
-- name: Ensure Homebrew is available (macOS)
-  command: brew --version
+- name: Check if Homebrew is installed (macOS)
+  shell: |
+    if command -v brew >/dev/null 2>&1; then
+      echo "found"
+    elif [ -f /opt/homebrew/bin/brew ]; then
+      echo "found"
+    elif [ -f /usr/local/bin/brew ]; then
+      echo "found"
+    else
+      echo "not found"
+    fi
+  register: brew_check
   changed_when: false
   become: false
   when: ansible_facts['os_family'] == 'Darwin'
 
+- name: Fail if Homebrew missing (macOS)
+  fail:
+    msg: |
+      Homebrew not found. Install manually:
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      User must have admin privileges.
+  when:
+    - ansible_facts['os_family'] == 'Darwin'
+    - brew_check.stdout == 'not found'
+
 - name: Get brew prefix (macOS)
-  command: brew --prefix
+  shell: |
+    if command -v brew >/dev/null 2>&1; then
+      brew --prefix
+    elif [ -f /opt/homebrew/bin/brew ]; then
+      /opt/homebrew/bin/brew --prefix
+    elif [ -f /usr/local/bin/brew ]; then
+      /usr/local/bin/brew --prefix
+    fi
   register: brew_prefix
   changed_when: false
   become: false
@@ -143,8 +85,20 @@
 # --------------------------
 # Install local CA
 # --------------------------
-- name: Install mkcert CA
-  command: "{{ mkcert_binary }} -install"
+- name: Create mkcert CA
+  command: "{{ mkcert_binary }} -CAROOT {{ cert_dir }}/ca -install"
+  environment:
+    CAROOT: "{{ cert_dir }}/ca"
+  ignore_errors: true
+
+- name: Add CA to system keychain (macOS)
+  shell: |
+    CAROOT="{{ cert_dir }}/ca"
+    if [ -f "$CAROOT/rootCA.pem" ]; then
+      security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CAROOT/rootCA.pem"
+    fi
+  become: true
+  when: ansible_facts['os_family'] == 'Darwin'
 
 # --------------------------
 # SAN list

@@ -2,7 +2,14 @@
 # Detect Homebrew prefix
 # --------------------------
 - name: Get brew prefix
-  command: brew --prefix
+  shell: |
+    if command -v brew >/dev/null 2>&1; then
+      brew --prefix
+    elif [ -f /opt/homebrew/bin/brew ]; then
+      /opt/homebrew/bin/brew --prefix
+    elif [ -f /usr/local/bin/brew ]; then
+      /usr/local/bin/brew --prefix
+    fi
   register: brew_prefix
   changed_when: false
   become: false
