@@ -2,7 +2,7 @@ magazine: ""
 
 cert_dir: /etc/ansible-local-mkcert
 nginx_config_dir: /etc/nginx
-
+mkcert_binary: /usr/bin/mkcert
 base_domains:
   - localhost
   - 127.0.0.1

@@ -83,7 +83,9 @@
 #     -cert-file {{ cert_dir }}/cert.pem
 #     -key-file {{ cert_dir }}/key.pem
 #     {{ mkcert_sans | join(' ') }}
-
+# --------------------------
+# Validate input
+# --------------------------
 - name: Assert magazine provided
   assert:
     that:
@@ -91,47 +93,27 @@
     fail_msg: "Pass magazine=yourdomain.magsquare.com"
 
 # --------------------------
-# Homebrew (macOS)
+# macOS: Homebrew + mkcert
 # --------------------------
 - name: Ensure Homebrew is available (macOS)
   command: brew --version
-  register: brew_check
   changed_when: false
-  failed_when: brew_check.rc != 0
+  become: false
   when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Get brew prefix (macOS)
   command: brew --prefix
   register: brew_prefix
   changed_when: false
+  become: false
   when: ansible_facts['os_family'] == 'Darwin'
 
-- name: Set macOS mkcert paths
+- name: Set mkcert paths (macOS)
   set_fact:
     cert_dir: "{{ brew_prefix.stdout }}/etc/ssl/ansible-mkcert"
     mkcert_binary: "{{ brew_prefix.stdout }}/bin/mkcert"
   when: ansible_facts['os_family'] == 'Darwin'
 
-# --------------------------
-# Linux paths
-# --------------------------
-- name: Set Linux mkcert paths
-  set_fact:
-    mkcert_binary: /usr/local/bin/mkcert
-  when: ansible_facts['os_family'] != 'Darwin'
-
-# --------------------------
-# Create cert directory
-# --------------------------
-- name: Create certificate directory
-  file:
-    path: "{{ cert_dir }}"
-    state: directory
-    mode: "0755"
-
-# --------------------------
-# Install mkcert
-# --------------------------
 - name: Install mkcert (macOS)
   homebrew:
     name: mkcert
@@ -139,23 +121,8 @@
   become: false
   when: ansible_facts['os_family'] == 'Darwin'
 
-- name: Install mkcert dependencies (Linux)
-  apt:
-    name: libnss3-tools
-    state: present
-    update_cache: yes
-  when: ansible_facts['os_family'] == 'Linux'
-
 # --------------------------
-# Linux: Download mkcert binary
-# --------------------------
-- name: Check if mkcert exists (Linux)
-  stat:
-    path: /usr/local/bin/mkcert
-  register: mkcert_stat
-  when: ansible_facts['os_family'] != 'Darwin'
-# --------------------------
-# Linux: Install mkcert via apt
+# Linux: mkcert via apt
 # --------------------------
 - name: Install mkcert (Linux)
   apt:
@@ -165,13 +132,22 @@
   when: ansible_facts['os_family'] == 'Debian'
 
 # --------------------------
+# Certificate directory
+# --------------------------
+- name: Create certificate directory
+  file:
+    path: "{{ cert_dir }}"
+    state: directory
+    mode: "0755"
+
+# --------------------------
 # Install local CA
 # --------------------------
 - name: Install mkcert CA
   command: "{{ mkcert_binary }} -install"
 
 # --------------------------
-# Build SAN list
+# SAN list
 # --------------------------
 - name: Build SAN list
   set_fact:
@@ -186,6 +162,7 @@
     -cert-file {{ cert_dir }}/cert.pem
     -key-file {{ cert_dir }}/key.pem
     {{ mkcert_sans | join(' ') }}
+
 - name: Set certificate permissions
   file:
     path: "{{ cert_dir }}/{{ item }}"
