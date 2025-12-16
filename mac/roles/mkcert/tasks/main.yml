@@ -147,6 +147,24 @@
   when: ansible_facts['os_family'] == 'Linux'
 
 # --------------------------
+# Linux: Download mkcert binary
+# --------------------------
+- name: Check if mkcert exists (Linux)
+  stat:
+    path: /usr/local/bin/mkcert
+  register: mkcert_stat
+  when: ansible_facts['os_family'] != 'Darwin'
+
+- name: Download mkcert (Linux)
+  get_url:
+    url: https://github.com/FiloSottile/mkcert/releases/latest/download/mkcert-linux-amd64
+    dest: /usr/local/bin/mkcert
+    mode: "0755"
+  when:
+    - ansible_facts['os_family'] != 'Darwin'
+    - not mkcert_stat.stat.exists
+
+# --------------------------
 # Install local CA
 # --------------------------
 - name: Install mkcert CA
