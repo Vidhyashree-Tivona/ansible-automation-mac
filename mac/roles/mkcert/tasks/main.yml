@@ -7,10 +7,11 @@
 # --------------------------
 # Homebrew (macOS)
 # --------------------------
-- name: Ensure Homebrew installed (macOS)
-  command: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  args:
-    creates: /usr/local/bin/brew
+- name: Ensure Homebrew is available (macOS)
+  command: brew --version
+  register: brew_check
+  changed_when: false
+  failed_when: brew_check.rc != 0
   when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Get brew prefix (macOS)
