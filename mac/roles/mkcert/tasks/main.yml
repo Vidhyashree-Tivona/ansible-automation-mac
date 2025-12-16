@@ -1,3 +1,89 @@
+# - name: Assert magazine provided
+#   assert:
+#     that:
+#       - magazine | length > 0
+#     fail_msg: "Pass magazine=yourdomain.magsquare.com"
+
+# # --------------------------
+# # Homebrew (macOS)
+# # --------------------------
+# - name: Ensure Homebrew is available (macOS)
+#   command: brew --version
+#   register: brew_check
+#   changed_when: false
+#   failed_when: brew_check.rc != 0
+#   when: ansible_facts['os_family'] == 'Darwin'
+
+# - name: Get brew prefix (macOS)
+#   command: brew --prefix
+#   register: brew_prefix
+#   changed_when: false
+#   when: ansible_facts['os_family'] == 'Darwin'
+
+# - name: Set macOS mkcert paths
+#   set_fact:
+#     cert_dir: "{{ brew_prefix.stdout }}/etc/ssl/ansible-mkcert"
+#     mkcert_binary: "{{ brew_prefix.stdout }}/bin/mkcert"
+#   when: ansible_facts['os_family'] == 'Darwin'
+
+# # --------------------------
+# # Linux paths
+# # --------------------------
+# - name: Set Linux mkcert paths
+#   set_fact:
+#     cert_dir: /etc/ansible-local-mkcert
+#     mkcert_binary: /usr/local/bin/mkcert
+#   when: ansible_facts['os_family'] == 'Linux'
+
+# # --------------------------
+# # Create cert directory
+# # --------------------------
+# - name: Create certificate directory
+#   file:
+#     path: "{{ cert_dir }}"
+#     state: directory
+#     mode: "0755"
+
+# # --------------------------
+# # Install mkcert
+# # --------------------------
+# - name: Install mkcert (macOS)
+#   homebrew:
+#     name: mkcert
+#     state: present
+#   become: false
+#   when: ansible_facts['os_family'] == 'Darwin'
+
+# - name: Install mkcert dependencies (Linux)
+#   apt:
+#     name: libnss3-tools
+#     state: present
+#     update_cache: yes
+#   when: ansible_facts['os_family'] == 'Linux'
+
+# # --------------------------
+# # Install local CA
+# # --------------------------
+# - name: Install mkcert CA
+#   command: "{{ mkcert_binary }} -install"
+
+# # --------------------------
+# # Build SAN list
+# # --------------------------
+# - name: Build SAN list
+#   set_fact:
+#     mkcert_sans: "{{ base_domains + [magazine, 'api.' ~ magazine] }}"
+
+# # --------------------------
+# # Generate certificate
+# # --------------------------
+# - name: Generate certificate
+#   command: >
+#     {{ mkcert_binary }}
+#     -cert-file {{ cert_dir }}/cert.pem
+#     -key-file {{ cert_dir }}/key.pem
+#     {{ mkcert_sans | join(' ') }}
+
 - name: Assert magazine provided
   assert:
     that:
@@ -31,9 +117,8 @@
 # --------------------------
 - name: Set Linux mkcert paths
   set_fact:
-    cert_dir: /etc/ansible-local-mkcert
     mkcert_binary: /usr/local/bin/mkcert
-  when: ansible_facts['os_family'] == 'Linux'
+  when: ansible_facts['os_family'] != 'Darwin'
 
 # --------------------------
 # Create cert directory
