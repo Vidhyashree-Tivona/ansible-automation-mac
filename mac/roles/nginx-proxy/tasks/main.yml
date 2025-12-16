@@ -69,8 +69,18 @@
 # --------------------------
 # Restart nginx
 # --------------------------
-- name: Restart nginx (macOS)
-  command: brew services restart nginx
+# --------------------------
+# Validate nginx config
+# --------------------------
+- name: Validate nginx config (macOS)
+  command: nginx -t
+  when: ansible_facts['os_family'] == 'Darwin'
+
+# --------------------------
+# Reload nginx (macOS)
+# --------------------------
+- name: Reload nginx (macOS)
+  command: nginx -s reload
   when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Restart nginx (Linux)
