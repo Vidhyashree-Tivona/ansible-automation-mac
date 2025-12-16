@@ -1,5 +1,17 @@
 - name: Assert magazine provided
+  assert:
+    that:
+      - magazine | length > 0
+    fail_msg: "Pass magazine=yourdomain.magsquare.com"
 
+# --------------------------
+# Homebrew (macOS)
+# --------------------------
+- name: Ensure Homebrew installed (macOS)
+  command: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  args:
+    creates: /usr/local/bin/brew
+  when: ansible_facts['os_family'] == 'Darwin'
 
 - name: Get brew prefix (macOS)
   command: brew --prefix
@@ -7,54 +19,62 @@
   changed_when: false
   when: ansible_facts['os_family'] == 'Darwin'
 
-
-- set_fact:
-  brew_prefix: "{{ brew_prefix.stdout | default('/usr/local') }}"
+- name: Set macOS mkcert paths
+  set_fact:
+    cert_dir: "{{ brew_prefix.stdout }}/etc/ssl/ansible-mkcert"
+    mkcert_binary: "{{ brew_prefix.stdout }}/bin/mkcert"
   when: ansible_facts['os_family'] == 'Darwin'
 
-
-- set_fact:
-  cert_dir: "{{ brew_prefix }}/etc/ssl/ansible-mkcert"
-  mkcert_binary: "{{ brew_prefix }}/bin/mkcert"
-  when: ansible_facts['os_family'] == 'Darwin'
-
-
-- set_fact:
-  cert_dir: /etc/ansible-local-mkcert
-  mkcert_binary: /usr/local/bin/mkcert
+# --------------------------
+# Linux paths
+# --------------------------
+- name: Set Linux mkcert paths
+  set_fact:
+    cert_dir: /etc/ansible-local-mkcert
+    mkcert_binary: /usr/local/bin/mkcert
   when: ansible_facts['os_family'] == 'Linux'
 
-
-- name: Create cert directory
+# --------------------------
+# Create cert directory
+# --------------------------
+- name: Create certificate directory
   file:
-  path: "{{ cert_dir }}"
-  state: directory
-  mode: '0755'
+    path: "{{ cert_dir }}"
+    state: directory
+    mode: "0755"
 
-
+# --------------------------
+# Install mkcert
+# --------------------------
 - name: Install mkcert (macOS)
   homebrew:
-  name: mkcert
-  state: present
+    name: mkcert
+    state: present
   when: ansible_facts['os_family'] == 'Darwin'
 
-
-- name: Install mkcert deps (Linux)
+- name: Install mkcert dependencies (Linux)
   apt:
-  name: libnss3-tools
-  update_cache: yes
+    name: libnss3-tools
+    state: present
+    update_cache: yes
   when: ansible_facts['os_family'] == 'Linux'
 
-
+# --------------------------
+# Install local CA
+# --------------------------
 - name: Install mkcert CA
   command: "{{ mkcert_binary }} -install"
 
-
+# --------------------------
+# Build SAN list
+# --------------------------
 - name: Build SAN list
   set_fact:
-  mkcert_sans: "{{ base_domains + [magazine, 'api.' ~ magazine] }}"
+    mkcert_sans: "{{ base_domains + [magazine, 'api.' ~ magazine] }}"
 
-
+# --------------------------
+# Generate certificate
+# --------------------------
 - name: Generate certificate
   command: >
     {{ mkcert_binary }}
