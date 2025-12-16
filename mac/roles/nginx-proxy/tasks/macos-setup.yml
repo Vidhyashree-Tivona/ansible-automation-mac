@@ -1,25 +1,37 @@
+# --------------------------
+# Detect Homebrew prefix
+# --------------------------
 - name: Get brew prefix
-command: brew --prefix
-register: brew_prefix
-changed_when: false
+  command: brew --prefix
+  register: brew_prefix
+  changed_when: false
+  become: false
 
+# --------------------------
+# Set nginx config directory
+# --------------------------
+- name: Set nginx config directory (macOS)
+  set_fact:
+    nginx_config_dir: "{{ brew_prefix.stdout }}/etc/nginx"
 
-- set_fact:
-nginx_config_dir: "{{ brew_prefix.stdout }}/etc/nginx"
+# --------------------------
+# Create nginx directories
+# --------------------------
+- name: Create nginx directories (macOS)
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ nginx_config_dir }}/sites-available"
+    - "{{ nginx_config_dir }}/sites-enabled"
 
-
-- name: Create nginx dirs
-file:
-path: "{{ item }}"
-state: directory
-loop:
-- "{{ nginx_config_dir }}/sites-available"
-- "{{ nginx_config_dir }}/sites-enabled"
-
-
+# --------------------------
+# Ensure nginx.conf includes sites-enabled
+# --------------------------
 - name: Ensure nginx.conf includes sites-enabled
-lineinfile:
-path: "{{ nginx_config_dir }}/nginx.conf"
-regexp: "sites-enabled/\\*"
-insertafter: "http {"
-line: " include {{ nginx_config_dir }}/sites-enabled/*;"
+  lineinfile:
+    path: "{{ nginx_config_dir }}/nginx.conf"
+    regexp: "sites-enabled/\\*"
+    insertafter: "http {"
+    line: "    include {{ nginx_config_dir }}/sites-enabled/*;"
