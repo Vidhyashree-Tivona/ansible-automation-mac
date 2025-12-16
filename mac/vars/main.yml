@@ -10,7 +10,7 @@ base_domains:
   - dashboard.local
 
 backends:
-  keycloak: "http://127.0.0.1:8080"
+  keycloak: "http://127.0.0.1:8081"
   dashboard: "http://127.0.0.1:5173"
   reader_vite: "http://127.0.0.1:3000"
   django_api: "http://127.0.0.1:8000"

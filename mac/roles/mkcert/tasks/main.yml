@@ -168,3 +168,10 @@
     -cert-file {{ cert_dir }}/cert.pem
     -key-file {{ cert_dir }}/key.pem
     {{ mkcert_sans | join(' ') }}
+- name: Set certificate permissions
+  file:
+    path: "{{ cert_dir }}/{{ item }}"
+    mode: "0644"
+  loop:
+    - cert.pem
+    - key.pem
