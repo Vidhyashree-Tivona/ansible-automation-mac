@@ -77,11 +77,26 @@
   when: ansible_facts['os_family'] == 'Darwin'
 
 # --------------------------
-# Reload nginx (macOS)
+# Start or reload nginx (macOS)
 # --------------------------
-- name: Reload nginx (macOS)
-  command: nginx -s reload
+- name: Check if nginx is running (macOS)
+  command: pgrep nginx
+  register: nginx_running
+  failed_when: false
+  changed_when: false
   when: ansible_facts['os_family'] == 'Darwin'
+
+- name: Start nginx if not running (macOS)
+  command: nginx
+  when:
+    - ansible_facts['os_family'] == 'Darwin'
+    - nginx_running.rc != 0
+
+- name: Reload nginx if running (macOS)
+  command: nginx -s reload
+  when:
+    - ansible_facts['os_family'] == 'Darwin'
+    - nginx_running.rc == 0
 
 - name: Restart nginx (Linux)
   service:
