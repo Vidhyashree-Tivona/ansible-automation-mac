@@ -12,21 +12,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show macOS version (debug)
-        run: sw_vers
+      - name: Debug repo structure
+        run: |
+          pwd
+          ls -R
 
-      - name: Install Homebrew packages
+      - name: Install tools
         run: |
           brew update
           brew install ansible nginx mkcert
 
-      - name: Verify tools
-        run: |
-          ansible --version
-          nginx -v
-          mkcert -version
-
       - name: Run Ansible playbook
+        working-directory: mac
         run: |
           ansible-playbook -i inventory/hosts site.yml \
             -e "magazine=test.magsquare.com"
