@@ -6,7 +6,7 @@ server {
     ssl_certificate_key {{ cert_dir }}/key.pem;
 
     location / {
-        proxy_pass {{ backends.reader_vite }};
+        proxy_pass {{ backends.reader_vite | mandatory }};
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
