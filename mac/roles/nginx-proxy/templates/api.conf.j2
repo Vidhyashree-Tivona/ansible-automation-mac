@@ -1,0 +1,15 @@
+server {
+listen 443 ssl;
+server_name api.magsquare.com api.{{ magazine }};
+
+
+ssl_certificate {{ cert_dir }}/cert.pem;
+ssl_certificate_key {{ cert_dir }}/key.pem;
+
+
+location / {
+proxy_pass {{ backends.django_api }};
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Proto https;
+}
+}

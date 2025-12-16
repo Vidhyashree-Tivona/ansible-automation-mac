@@ -1,0 +1,15 @@
+server {
+listen 8443 ssl;
+server_name localhost;
+
+
+ssl_certificate {{ cert_dir }}/cert.pem;
+ssl_certificate_key {{ cert_dir }}/key.pem;
+
+
+location / {
+proxy_pass {{ backends.keycloak }};
+proxy_set_header Host localhost:8443;
+proxy_set_header X-Forwarded-Proto https;
+}
+}

@@ -1,0 +1,63 @@
+- name: Assert magazine provided
+
+
+- name: Get brew prefix (macOS)
+  command: brew --prefix
+  register: brew_prefix
+  changed_when: false
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- set_fact:
+  brew_prefix: "{{ brew_prefix.stdout | default('/usr/local') }}"
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- set_fact:
+  cert_dir: "{{ brew_prefix }}/etc/ssl/ansible-mkcert"
+  mkcert_binary: "{{ brew_prefix }}/bin/mkcert"
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- set_fact:
+  cert_dir: /etc/ansible-local-mkcert
+  mkcert_binary: /usr/local/bin/mkcert
+  when: ansible_facts['os_family'] == 'Linux'
+
+
+- name: Create cert directory
+  file:
+  path: "{{ cert_dir }}"
+  state: directory
+  mode: '0755'
+
+
+- name: Install mkcert (macOS)
+  homebrew:
+  name: mkcert
+  state: present
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- name: Install mkcert deps (Linux)
+  apt:
+  name: libnss3-tools
+  update_cache: yes
+  when: ansible_facts['os_family'] == 'Linux'
+
+
+- name: Install mkcert CA
+  command: "{{ mkcert_binary }} -install"
+
+
+- name: Build SAN list
+  set_fact:
+  mkcert_sans: "{{ base_domains + [magazine, 'api.' ~ magazine] }}"
+
+
+- name: Generate certificate
+  command: >
+    {{ mkcert_binary }}
+    -cert-file {{ cert_dir }}/cert.pem
+    -key-file {{ cert_dir }}/key.pem
+    {{ mkcert_sans | join(' ') }}

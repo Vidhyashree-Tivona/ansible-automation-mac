@@ -1,0 +1,13 @@
+server {
+listen 443 ssl;
+server_name {{ magazine }};
+
+
+ssl_certificate {{ cert_dir }}/cert.pem;
+ssl_certificate_key {{ cert_dir }}/key.pem;
+
+
+location / {
+proxy_pass {{ backends.reader_vite }};
+}
+}

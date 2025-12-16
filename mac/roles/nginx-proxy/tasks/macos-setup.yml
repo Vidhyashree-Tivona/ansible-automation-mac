@@ -1,0 +1,25 @@
+- name: Get brew prefix
+command: brew --prefix
+register: brew_prefix
+changed_when: false
+
+
+- set_fact:
+nginx_config_dir: "{{ brew_prefix.stdout }}/etc/nginx"
+
+
+- name: Create nginx dirs
+file:
+path: "{{ item }}"
+state: directory
+loop:
+- "{{ nginx_config_dir }}/sites-available"
+- "{{ nginx_config_dir }}/sites-enabled"
+
+
+- name: Ensure nginx.conf includes sites-enabled
+lineinfile:
+path: "{{ nginx_config_dir }}/nginx.conf"
+regexp: "sites-enabled/\\*"
+insertafter: "http {"
+line: " include {{ nginx_config_dir }}/sites-enabled/*;"

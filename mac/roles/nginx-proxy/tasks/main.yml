@@ -1,0 +1,60 @@
+- name: Install nginx
+  package:
+  name: nginx
+  state: present
+
+
+- include_tasks: macos-setup.yml
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- name: Template dashboard
+  template:
+  src: dashboard.conf.j2
+  dest: "{{ nginx_config_dir }}/sites-available/dashboard.conf"
+
+
+- name: Template api
+  template:
+  src: api.conf.j2
+  dest: "{{ nginx_config_dir }}/sites-available/api.conf"
+
+
+- name: Template reader
+  template:
+  src: reader.conf.j2
+  dest: "{{ nginx_config_dir }}/sites-available/reader.conf"
+
+
+- name: Template keycloak
+  template:
+  src: keycloak.conf.j2
+  dest: "{{ nginx_config_dir }}/sites-available/keycloak.conf"
+
+
+- name: Enable sites
+  file:
+  src: "{{ nginx_config_dir }}/sites-available/{{ item }}.conf"
+  dest: "{{ nginx_config_dir }}/sites-enabled/{{ item }}.conf"
+  state: link
+  force: yes
+  loop:
+  - dashboard
+  - api
+  - reader
+  - keycloak
+
+
+- include_tasks: hosts.yml
+
+
+- name: Restart nginx (macOS)
+  command: brew services restart nginx
+  when: ansible_facts['os_family'] == 'Darwin'
+
+
+- name: Restart nginx (Linux)
+  service:
+  name: nginx
+  state: restarted
+  when: ansible_facts['os_family'] == 'Linux'
