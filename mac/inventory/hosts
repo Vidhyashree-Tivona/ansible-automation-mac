@@ -1,2 +1,2 @@
 [local]
-192.168.29.139 ansible_user=karthikswamy ansible_password=tivona
+10.0.40.203 ansible_user=tharanyas ansible_password=12062001

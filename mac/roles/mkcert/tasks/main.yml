@@ -91,13 +91,9 @@
     CAROOT: "{{ cert_dir }}/ca"
   ignore_errors: true
 
-- name: Add CA to system keychain (macOS)
-  shell: |
-    CAROOT="{{ cert_dir }}/ca"
-    if [ -f "$CAROOT/rootCA.pem" ]; then
-      security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CAROOT/rootCA.pem"
-    fi
-  become: true
+- name: Verify CA installation (macOS)
+  debug:
+    msg: "CA installation handled by mkcert -install command"
   when: ansible_facts['os_family'] == 'Darwin'
 
 # --------------------------
