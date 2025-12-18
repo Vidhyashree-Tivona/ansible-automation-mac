@@ -1,2 +1,2 @@
 [local]
-10.0.40.203 ansible_user=tharanyas ansible_password=12062001
+127.0.0.1 ansible_connection=local
